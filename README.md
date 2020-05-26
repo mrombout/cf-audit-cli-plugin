@@ -1,2 +1,4 @@
-# cf-audit-gui
-A local web-based GUI for exploring and querying audit events on Cloud Foundry implemented as a Cloud Foundry CLI plugin.
+# cf-audit-cli-plugin
+
+A local interface (web and terminal) for exploring and querying audit events on Cloud Foundry. It is implemented as a CF
+CLI plugin.
