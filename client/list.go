@@ -3,18 +3,13 @@ package client
 import (
 	"code.cloudfoundry.org/cli/plugin"
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
+	"fmt"
 	"net/url"
 	"strings"
 )
 
 type CloudFoundryClient struct {
-	HttpClient              http.Client
 	CliConnection           plugin.CliConnection
-	ApiEndpoint             *url.URL
-	AccessToken             string
-	ListAuditEventsEndpoint *url.URL
 }
 
 type ListAuditEventsRequest struct {
@@ -69,38 +64,23 @@ func (r *ListAuditEventsRequest) query(baseValues url.Values) url.Values {
 	return baseValues
 }
 
-func (r *ListAuditEventsRequest) createHttpRequest(endpoint url.URL, accessToken string) (*http.Request, error) {
-	endpoint.RawQuery = r.query(endpoint.Query()).Encode()
+func (c *CloudFoundryClient) ListAuditEvents(request ListAuditEventsRequest) ([]AuditEventModel, error) {
+	endpoint := url.URL{Path: "/v3/audit_events"}
+	endpoint.RawQuery = request.query(endpoint.Query()).Encode()
 
-	httpRequest, err := http.NewRequest("GET", endpoint.String(), strings.NewReader(""))
+	output, err := c.CliConnection.CliCommandWithoutTerminalOutput("curl", endpoint.String())
 	if err != nil {
 		return nil, err
 	}
-	httpRequest.Header.Set("Authorization", accessToken)
-
-	return httpRequest, nil
-}
-
-func (c *CloudFoundryClient) ListAuditEvents(request ListAuditEventsRequest) ([]AuditEventModel, error) {
-	httpRequest, err := request.createHttpRequest(*c.ListAuditEventsEndpoint, c.AccessToken)
-	if err != nil {
-		return []AuditEventModel{}, err
+	if len(output) == 0 {
+		return nil, fmt.Errorf("no response received from endpoint: %s", endpoint.String())
 	}
-
-	rawResponse, err := c.HttpClient.Do(httpRequest)
-	if err != nil {
-		return []AuditEventModel{}, err
-	}
-
-	responseBody, err := ioutil.ReadAll(rawResponse.Body)
-	if err != nil {
-		return []AuditEventModel{}, err
-	}
+	outputBody := strings.Join(output, "")
 
 	var response AuditEventResponse
-	err = json.Unmarshal(responseBody, &response)
+	err = json.Unmarshal([]byte(outputBody), &response)
 	if err != nil {
-		return []AuditEventModel{}, err
+		return nil, err
 	}
 
 	return response.Resources, nil

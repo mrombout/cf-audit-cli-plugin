@@ -9,8 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/mrombout/cf-audit-cli-plugin/client"
-	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -46,9 +44,8 @@ func TableColorHack(input string) string {
 }
 
 func (c *AuditPlugin) Run(cliConnection plugin.CliConnection, args []string) {
-	cfClient, err := createCloudFoundryClient(cliConnection)
-	if err != nil {
-		panic(err)
+	cfClient := client.CloudFoundryClient{
+		CliConnection: cliConnection,
 	}
 
 	if args[0] == CmdAuditEvents {
@@ -97,31 +94,6 @@ func (c *AuditPlugin) GetMetadata() plugin.PluginMetadata {
 			},
 		},
 	}
-}
-
-func createCloudFoundryClient(cliConnection plugin.CliConnection) (client.CloudFoundryClient, error) {
-	apiEndpoint, err := cliConnection.ApiEndpoint()
-	if err != nil {
-		return client.CloudFoundryClient{}, nil
-	}
-
-	listAuditEventEndpointUrl, err := url.Parse(apiEndpoint + "/v3/audit_events")
-	if err != nil {
-		return client.CloudFoundryClient{}, nil
-	}
-
-	accessToken, err := cliConnection.AccessToken()
-	if err != nil {
-		return client.CloudFoundryClient{}, nil
-	}
-
-	cfClient := client.CloudFoundryClient{
-		HttpClient:              http.Client{},
-		CliConnection:           cliConnection,
-		ListAuditEventsEndpoint: listAuditEventEndpointUrl,
-		AccessToken:             accessToken,
-	}
-	return cfClient, nil
 }
 
 func parseFlags(command string, cliConnection plugin.CliConnection, args []string) (flags *flag.FlagSet, orgGuid string, spaceGuid string, err error) {
