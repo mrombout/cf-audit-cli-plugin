@@ -18,6 +18,10 @@ import (
 
 type AuditPlugin struct{}
 
+const CmdAuditEvents = "audit-events"
+const CmdServiceEvents = "service-events"
+const CmdServiceBindingEvents = "service-binding-events"
+
 var Reset = "\033[0m"
 var Bold = "\033[1m"
 var White = "\033[37m"
@@ -47,11 +51,11 @@ func (c *AuditPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 		panic(err)
 	}
 
-	if args[0] == "audit" {
+	if args[0] == CmdAuditEvents {
 		c.runAudit(cliConnection, args, cfClient)
-	} else if args[0] == "audit-service" {
+	} else if args[0] == CmdServiceEvents {
 		c.runAuditService(cliConnection, args, cfClient)
-	} else if args[0] == "audit-service-binding" {
+	} else if args[0] == CmdServiceBindingEvents {
 		c.runAuditServiceBinding(cliConnection, args, cfClient)
 	}
 }
@@ -71,24 +75,24 @@ func (c *AuditPlugin) GetMetadata() plugin.PluginMetadata {
 		},
 		Commands: []plugin.Command{
 			{
-				Name:     "audit",
+				Name:     CmdAuditEvents,
 				HelpText: "Show recent audit events",
 				UsageDetails: plugin.Usage{
-					Usage: "cf audit",
+					Usage: fmt.Sprintf("cf %s", CmdAuditEvents),
 				},
 			},
 			{
-				Name:     "audit-service",
+				Name:     CmdServiceEvents,
 				HelpText: "Show recent service audit events",
 				UsageDetails: plugin.Usage{
-					Usage: "cf audit-service SERVICE_NAME",
+					Usage: fmt.Sprintf("cf %s SERVICE_NAME", CmdServiceEvents),
 				},
 			},
 			{
-				Name:     "audit-service-binding",
+				Name:     CmdServiceBindingEvents,
 				HelpText: "Show recent service binding audit events",
 				UsageDetails: plugin.Usage{
-					Usage: "cf audit-service-binding SERVICE_NAME",
+					Usage: fmt.Sprintf("cf %s SERVICE_NAME", CmdServiceBindingEvents),
 				},
 			},
 		},
@@ -120,11 +124,11 @@ func createCloudFoundryClient(cliConnection plugin.CliConnection) (client.CloudF
 	return cfClient, nil
 }
 
-func parseFlags(cliConnection plugin.CliConnection, args []string) (flags *flag.FlagSet, orgGuid string, spaceGuid string, err error) {
+func parseFlags(command string, cliConnection plugin.CliConnection, args []string) (flags *flag.FlagSet, orgGuid string, spaceGuid string, err error) {
 	organizationName := ""
 	spaceName := ""
 
-	flags = flag.NewFlagSet("audit", flag.ExitOnError)
+	flags = flag.NewFlagSet(command, flag.ExitOnError)
 	flags.StringVar(&organizationName, "o", "", "Organization")
 	flags.StringVar(&spaceName, "s", "", "Space")
 	// TODO: flag to change types
@@ -168,7 +172,7 @@ func parseFlags(cliConnection plugin.CliConnection, args []string) (flags *flag.
 }
 
 func (c *AuditPlugin) runAudit(cliConnection plugin.CliConnection, args []string, cfClient client.CloudFoundryClient) {
-	_, orgGuid, spaceGuid, err := parseFlags(cliConnection, args)
+	_, orgGuid, spaceGuid, err := parseFlags(CmdAuditEvents, cliConnection, args)
 	if err != nil {
 		panic(err)
 	}
@@ -187,7 +191,7 @@ func (c *AuditPlugin) runAudit(cliConnection plugin.CliConnection, args []string
 }
 
 func (c *AuditPlugin) runAuditService(cliConnection plugin.CliConnection, args []string, cfClient client.CloudFoundryClient) {
-	flags, orgGuid, spaceGuid, err := parseFlags(cliConnection, args)
+	flags, orgGuid, spaceGuid, err := parseFlags(CmdServiceEvents, cliConnection, args)
 	if err != nil {
 		panic(err)
 	}
@@ -218,7 +222,7 @@ func (c *AuditPlugin) runAuditService(cliConnection plugin.CliConnection, args [
 
 // TODO: Maybe just merge this with the audit-service command?
 func (c *AuditPlugin) runAuditServiceBinding(cliConnection plugin.CliConnection, args []string, cfClient client.CloudFoundryClient) {
-	flags, orgGuid, spaceGuid, err := parseFlags(cliConnection, args)
+	flags, orgGuid, spaceGuid, err := parseFlags(CmdServiceBindingEvents, cliConnection, args)
 	if err != nil {
 		panic(err)
 	}
